@@ -1,48 +1,60 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"strings"
+
+	"github.com/uber-go/hackeroni/h1"
 )
 
 // when needed: https://github.com/spf13/cobra
 
 func main() {
+	file := flag.String("token", ".token", "Token file containing `user:apikey`")
+	prog := flag.String("program", "nodejs", "Program name")
+	flag.Parse()
+
+	log.SetFlags(0)
 	log.SetOutput(os.Stderr)
 
-	url := "https://api.hackerone.com/v1/reports?filter[program][]=nodejs"
-	user := "at-sam-github"
-	token, err := ioutil.ReadFile(".token")
+	token, err := ioutil.ReadFile(*file)
 	if err != nil {
-		log.Fatalf("read file: %s", err)
+		log.Fatalf("read token: %s", err)
 	}
-	pass := strings.TrimSpace(string(token)) // Strip trailing newline, etc.
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Fatalf("new req: %s", err)
+	parts := strings.SplitN(string(token), ":", 2)
+	if len(parts) != 2 {
+		log.Fatalf("failed to find `user:apikey` in %s", *file)
 	}
 
-	req.SetBasicAuth(user, pass)
-
-	rsp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatalf("http.get: %s", err)
-	}
-	defer rsp.Body.Close()
-
-	body, err := ioutil.ReadAll(rsp.Body)
-	if err != nil {
-		log.Fatalf("read body: %s", err)
+	auth := h1.APIAuthTransport{
+		APIIdentifier: strings.TrimSpace(parts[0]),
+		APIToken:      strings.TrimSpace(parts[1]),
 	}
 
-	if rsp.StatusCode != http.StatusOK {
-		log.Fatalf("%s %s", rsp.Status, body)
+	client := h1.NewClient(auth.Client())
+
+	filter := h1.ReportListFilter{
+		Program: []string{strings.TrimSpace(*prog)},
 	}
 
-	fmt.Printf("%s\n", body)
+	var listOpts h1.ListOptions
+
+	fmt.Print("Listing all reports:\n")
+	for {
+		reports, resp, err := client.Report.List(filter, &listOpts)
+		if err != nil {
+			panic(err)
+		}
+		if resp.Links.Next == "" {
+			break
+		}
+		listOpts.Page = resp.Links.NextPageNumber()
+		for _, report := range reports {
+			fmt.Printf("%s %v\n", *report.ID, *report.Title)
+		}
+	}
 }

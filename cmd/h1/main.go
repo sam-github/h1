@@ -55,6 +55,15 @@ func main() {
 		listOpts.Page = resp.Links.NextPageNumber()
 		for _, report := range reports {
 			fmt.Printf("%s %v\n", *report.ID, *report.Title)
+			fmt.Printf("  type:    %v\n", *report.Type)
+			fmt.Printf("  state:   %v\n", *report.State)
+			fmt.Printf("  created: %v\n", report.CreatedAt)
+			fmt.Printf("  triaged: %v\n", report.TriagedAt)
+			fmt.Printf("  closed:  %v\n", report.ClosedAt)
+			fmt.Printf("  public:  %v\n", report.DisclosedAt)
+			if report.RawAssignee != nil {
+				fmt.Printf("  assign:  %v\n", report.Assignee())
+			}
 		}
 	}
 }

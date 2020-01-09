@@ -6,5 +6,4 @@ require (
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/uber-go/hackeroni v0.0.0-20161212232557-bc8cb110d1e6
-	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876
 )

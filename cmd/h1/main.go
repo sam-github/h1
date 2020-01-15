@@ -18,6 +18,7 @@ import (
 func main() {
 	file := flag.String("token", ".token", "Token file containing `user:apikey`")
 	prog := flag.String("program", "nodejs", "Program name")
+	priv := flag.Bool("private", false, "Include private information")
 	flag.Parse()
 
 	log.SetFlags(0)
@@ -73,11 +74,16 @@ func main() {
 				//   kind = &waitChampion
 				// }
 				kind = &waitFix
-			case "duplicate", "informative", "not-applicable", "resolved":
-				// XXX Do we need a way of marking an issue as "do not disclose"?
+			case "informative", "not-applicable", "resolved":
 				if report.DisclosedAt == nil {
-					kind = &waitDisclose
+					// If a closed issue needs disclosure, assign it. Otherwise, treat
+					// it as "nothing left to do".
+					if report.RawAssignee != nil {
+						kind = &waitDisclose
+					}
 				}
+			case "duplicate":
+				continue
 			case "spam":
 				continue
 			default:
@@ -92,10 +98,10 @@ func main() {
 	}
 	fmt.Printf("# Open Reports\n")
 
-	list("Waiting for more info", waitInfo)
-	list("Waiting for triage", waitTriage)
-	list("Waiting for fix", waitFix)
-	list("Waiting for disclosure", waitDisclose)
+	list(*priv, "Waiting for more info", waitInfo, false)
+	list(*priv, "Waiting for triage", waitTriage, false)
+	list(*priv, "Waiting for fix", waitFix, false)
+	list(*priv, "Waiting for disclosure", waitDisclose, true)
 }
 
 func daysWaiting(report h1.Report) int {
@@ -129,7 +135,7 @@ func assignee(report h1.Report) string {
 	return ""
 }
 
-func list(h string, reports []h1.Report) {
+func list(priv bool, h string, reports []h1.Report, withState bool) {
 	if len(reports) == 0 {
 		return
 	}
@@ -143,10 +149,20 @@ func list(h string, reports []h1.Report) {
 		if a := assignee(report); a != "" && a != "Node.js Team" {
 			champion = fmt.Sprintf(" (%s)", a)
 		}
-		fmt.Printf("* %d days: https://hackerone.com/reports/%s%s\n",
+
+		var state string
+		if withState {
+			state = fmt.Sprintf(" (%s)", *report.State)
+		}
+		fmt.Printf("* %d days:%s https://hackerone.com/reports/%s%s\n",
 			daysWaiting(report),
+			state,
 			*report.ID,
 			champion,
 		)
+		if !priv {
+			continue
+		}
+		fmt.Printf("> %s\n", *report.Title)
 	}
 }

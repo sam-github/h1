@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -16,7 +17,7 @@ import (
 // when needed: https://github.com/spf13/cobra
 
 func main() {
-	file := flag.String("token", ".token", "`file` contains 'identifier:api-token'")
+	file := flag.String("token", ".token", "`file` contains 'ID[@PROGRAM]:TOKEN' lines")
 	prog := flag.String("program", "nodejs", "Program name")
 	priv := flag.Bool("private", false, "Include private information")
 	flag.Parse()
@@ -24,18 +25,36 @@ func main() {
 	log.SetFlags(0)
 	log.SetOutput(os.Stderr)
 
-	token, err := ioutil.ReadFile(*file)
+	var id string
+	var token string
+	config, err := ioutil.ReadFile(*file)
 	if err != nil {
-		log.Fatalf("read token: %s", err)
+		log.Fatalf("Failed to %s", err)
 	}
-	parts := strings.SplitN(string(token), ":", 2)
-	if len(parts) != 2 {
-		log.Fatalf("failed to find `identifier:apitoken` in %s", *file)
+	comment := regexp.MustCompile(`#.*$`)
+	clear := string(comment.ReplaceAll(config, []byte("")))
+	// rx: `ID [@ PROGRAM] : TOKEN`
+	rx := `(?m)^\s*([^\s:@]+)\s*(?:@\s*([^\s:]*)\s*)?:\s*([^\s]+)\s*$`
+	for _, ipt := range regexp.MustCompile(rx).FindAllStringSubmatch(clear, -1) {
+		i := ipt[1]
+		p := ipt[2]
+		t := ipt[3]
+		// If `@ PROGRAM` is included, it must match the program.
+		if p != "" && p != *prog {
+			continue
+		}
+		id = i
+		token = t
+		break
+	}
+
+	if id == "" || token == "" {
+		log.Fatalf("Failed to find `ID[@PROGRAM]:TOKEN` in %s", *file)
 	}
 
 	auth := h1.APIAuthTransport{
-		APIIdentifier: strings.TrimSpace(parts[0]),
-		APIToken:      strings.TrimSpace(parts[1]),
+		APIIdentifier: strings.TrimSpace(id),
+		APIToken:      strings.TrimSpace(token),
 	}
 
 	client := h1.NewClient(auth.Client())

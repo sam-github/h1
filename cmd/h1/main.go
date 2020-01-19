@@ -16,7 +16,7 @@ import (
 // when needed: https://github.com/spf13/cobra
 
 func main() {
-	file := flag.String("token", ".token", "Token file containing `user:apikey`")
+	file := flag.String("token", ".token", "`file` contains 'identifier:api-token'")
 	prog := flag.String("program", "nodejs", "Program name")
 	priv := flag.Bool("private", false, "Include private information")
 	flag.Parse()
@@ -30,7 +30,7 @@ func main() {
 	}
 	parts := strings.SplitN(string(token), ":", 2)
 	if len(parts) != 2 {
-		log.Fatalf("failed to find `user:apikey` in %s", *file)
+		log.Fatalf("failed to find `identifier:apitoken` in %s", *file)
 	}
 
 	auth := h1.APIAuthTransport{

@@ -161,7 +161,7 @@ func list(priv bool, h string, reports []h1.Report, withState bool) {
 
 	sortByDaysWaiting(reports)
 
-	fmt.Printf("## %s\n", h)
+	fmt.Printf("\n## %s\n", h)
 	for _, report := range reports {
 		var champion string
 		// Assignment to the Node.js Team means "no champion" :-(.
@@ -173,7 +173,7 @@ func list(priv bool, h string, reports []h1.Report, withState bool) {
 		if withState {
 			state = fmt.Sprintf(" (%s)", *report.State)
 		}
-		fmt.Printf("* %d days:%s https://hackerone.com/reports/%s%s\n",
+		fmt.Printf("\n* %d days:%s https://hackerone.com/reports/%s%s\n",
 			daysWaiting(report),
 			state,
 			*report.ID,

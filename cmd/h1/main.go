@@ -16,10 +16,13 @@ import (
 
 // when needed: https://github.com/spf13/cobra
 
+var debug bool
+
 func main() {
 	file := flag.String("token", ".token", "`file` contains 'ID[@PROGRAM]:TOKEN' lines")
 	prog := flag.String("program", "nodejs", "Program name")
 	priv := flag.Bool("private", false, "Include private information")
+	flag.BoolVar(&debug, "debug", false, "Include debug information")
 	flag.Parse()
 
 	log.SetFlags(0)
@@ -183,5 +186,11 @@ func list(priv bool, h string, reports []h1.Report, withState bool) {
 			continue
 		}
 		fmt.Printf("> %s\n", *report.Title)
+
+		if debug {
+			fmt.Printf("report.BountyAwardedAt %+v\n", report.BountyAwardedAt)
+			fmt.Printf("report.Bounties %+v\n", report.Bounties)
+			fmt.Printf("report.Activities %+v\n", report.Activities)
+		}
 	}
 }

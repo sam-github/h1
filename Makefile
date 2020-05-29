@@ -1,3 +1,5 @@
+default: day
+
 build: bin/h1
 
 bin/h1: cmd/h1/main.go
@@ -5,3 +7,6 @@ bin/h1: cmd/h1/main.go
 
 run: build
 	./bin/h1 -private -debug
+
+day: bin/h1
+	./bin/h1 -private > `date +"%Y-%m-%d-report.md"`
